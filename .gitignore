@@ -2,3 +2,5 @@
 *.pkl
 *.zip
 *.rar
+*.pth
+data/cifar10/*
