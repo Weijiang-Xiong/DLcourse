@@ -47,13 +47,16 @@ def imshow(img):
 
 def testNet(testloader, net):
     running_loss = 0.0
+    correct = 0.0
     for i, (inputs, labels) in enumerate(testloader, 0):
         # get the inputs; data is a list of [inputs, labels]
         inputs, labels = inputs.to(device), labels.to(device)    
         outputs = net(inputs)
+        correct += float(sum(torch.argmax(outputs, dim=1)==labels))
         loss = criterion(outputs, labels)
         running_loss += loss.item()
-    print('total loss on test set: {0}'.format(running_loss/i))
+    print('running loss: {0}'.format(running_loss/i))
+    print('correctly predict {0}/{1}'.format(correct, (i+1)*testloader.batch_size))
 
 # get some random training images
 dataiter = iter(trainloader)
@@ -75,40 +78,48 @@ criterion = nn.CrossEntropyLoss()
 optimizer = optim.SGD(net.parameters(), lr=0.001, momentum=0.9)
 
 #%%
-for epoch in range(3):  # loop over the dataset multiple times
-
-    running_loss = 0.0
-    for i, (inputs, labels) in enumerate(trainloader, 0):
-        # get the inputs; data is a list of [inputs, labels]
-        inputs, labels = inputs.to(device), labels.to(device)
-
-        # zero the parameter gradients
-        optimizer.zero_grad()
-
-        # forward + backward + optimize
-        outputs = net(inputs)
-        loss = criterion(outputs, labels)
-        loss.backward()
-        optimizer.step()
-
-        # print statistics
-        running_loss += loss.item()
-        if i % 2000 == 1999:    # print every 2000 mini-batches
-            print('[%d, %5d] loss: %.3f' %
-                  (epoch + 1, i + 1, running_loss / 2000))
-            running_loss = 0.0
-
-print('Finished Training')
-
-
+preTrained = True
 PATH = 'assignment3/cifar_net.pth'
-torch.save(net.state_dict(), PATH)
+if preTrained:
+    net.load_state_dict(torch.load(PATH))
+else:
+    for epoch in range(3):  # loop over the dataset multiple times
+
+        running_loss = 0.0
+        for i, (inputs, labels) in enumerate(trainloader, 0):
+            # get the inputs; data is a list of [inputs, labels]
+            inputs, labels = inputs.to(device), labels.to(device)
+
+            # zero the parameter gradients
+            optimizer.zero_grad()
+
+            # forward + backward + optimize
+            outputs = net(inputs)
+            loss = criterion(outputs, labels)
+            loss.backward()
+            optimizer.step()
+
+            # print statistics
+            running_loss += loss.item()
+            if i % 2000 == 1999:    # print every 2000 mini-batches
+                print('[%d, %5d] loss: %.3f' %
+                    (epoch + 1, i + 1, running_loss / 2000))
+                running_loss = 0.0
+    print('Finished Training')
+    torch.save(net.state_dict(), PATH)
+
+print('\nreview the output on train set')    
+testNet(trainloader, net)
 
 #%%
 dataiter = iter(testloader)
 images, labels = dataiter.next()
 # print images
 imshow(torchvision.utils.make_grid(images))
+out = net(images.to(device))
 print('GroundTruth: ', ' '.join('%5s' % classes[labels[j]] for j in range(4)))
+print('Predict: ', ' '.join('%5s' % classes[predicted] for predicted in torch.argmax(out, dim=1)))
+
+print('\nbegin testing the model on test set')
 testNet(testloader, net)
 #%%

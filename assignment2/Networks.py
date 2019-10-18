@@ -150,7 +150,7 @@ class FCNet():
         #     grad2w = [nw+dnw for nw, dnw in zip(grad2w , delta_nabla_w)]
         #     self.biases = [b-(eta/len(batch))*nb for b, nb in zip(self.biases , grad2b)]
         #     self.weights = [w-(eta/len(batch))*nw for w, nw in zip(self.weights , grad2w)]
-    
+
     def predict(self, testData):
         probs, _, _ = self.forwardPass(testData[0].transpose())
         result = np.zeros_like(probs)
