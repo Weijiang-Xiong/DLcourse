@@ -1,21 +1,14 @@
-"""
-Helper functions.
-
-@author: Zhenye Na - https://github.com/Zhenye-Na
-@reference: "End to End Learning for Self-Driving Cars", arXiv:1604.07316
-"""
-
 import os
 import pandas as pd
 
 from torch.utils import data
-from RcCarDataset import TripletDataset
+from RcCarDataset import MergedDataset
 
 import torchvision.transforms as transforms
 from torch.utils.data import DataLoader
 
 
-def toDevice(datas, device):
+def toDevice(data, device):
     """
     Enable cuda.
 
@@ -26,7 +19,7 @@ def toDevice(datas, device):
     Returns:
         Transform `data` to `device`
     """
-    imgs, angles = datas
+    imgs, angles = data
     return imgs.float().to(device), angles.float().to(device)
 
 
@@ -78,13 +71,13 @@ def data_loader(dataroot, trainset, valset, batch_size, shuffle, num_workers):
         ])
 
     # Load training data and validation data
-    training_set = TripletDataset(dataroot, trainset, transformations)
+    training_set = MergedDataset(dataroot, trainset, transformations)
     trainloader = DataLoader(training_set,
                              batch_size=batch_size,
                              shuffle=shuffle,
                              num_workers=num_workers)
 
-    validation_set = TripletDataset(dataroot, valset, transformations)
+    validation_set = MergedDataset(dataroot, valset, transformations)
     valloader = DataLoader(validation_set,
                            batch_size=batch_size,
                            shuffle=shuffle,

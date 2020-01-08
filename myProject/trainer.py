@@ -1,8 +1,3 @@
-"""Trainer.
-
-@author: Zhenye Na - https://github.com/Zhenye-Na
-@reference: "End to End Learning for Self-Driving Cars", arXiv:1604.07316
-"""
 
 import os
 import torch
@@ -29,12 +24,14 @@ class Trainer(object):
         """Self-Driving car Trainer.
 
         Args:
+            dataroot: the path to the dataset
+            ckptroot: the path to checkpoint
             model: CNN model
-            device: cuda or cpu
+            device: boolean value, use GPU or not
             epochs: epochs to training neural network
             criterion: nn.MSELoss()
             optimizer: optim.Adam()
-            start_epoch: 0 or checkpoint['epoch']
+            start_epoch: 0 by default if not defined by checkpoint
             trainloader: training set loader
             validationloader: validation set loader
 
@@ -54,6 +51,7 @@ class Trainer(object):
         self.validationloader = validationloader
         self.trainLoss = []
         self.validationLoss = []
+        self.reportFreq = 20
 
     def train(self):
         """Training process."""
@@ -85,8 +83,9 @@ class Trainer(object):
 
                     train_loss += loss.data.item()
 
-                if local_batch % 100 == 0:
-                    # calculate loss at the beginning, if the dataset is large, then report loss every 100 batches
+                if local_batch % self.reportFreq == 0:
+                    # calculate loss at the beginning, if the dataset is large,
+                    # then report loss every 100 batches
                     curTrainLoss = train_loss / (local_batch + 1)
                     print("Training Epoch: {} | Loss: {}".format(epoch, curTrainLoss))
                     self.trainLoss.append(curTrainLoss)
@@ -110,7 +109,7 @@ class Trainer(object):
 
                         valid_loss += loss.data.item()
 
-                    if local_batch % 100 == 0:
+                    if local_batch % self.reportFreq == 0:
                         curValLoss = valid_loss / (local_batch + 1)
                         print("Validation Loss: {}".format(curValLoss))
                         self.validationLoss.append(curValLoss)

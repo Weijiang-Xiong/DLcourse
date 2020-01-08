@@ -6,6 +6,7 @@
 *.mp4
 *.h5
 *.pyc
+*.pptx
 data/cifar10/*
 myProject/beta_simulator_windows/
 myProject/trainData/

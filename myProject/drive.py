@@ -2,22 +2,20 @@
 
 import argparse
 import base64
-from datetime import datetime
 import os
 import shutil
-
-import numpy as np
-import socketio
-import eventlet
-import eventlet.wsgi
-from PIL import Image
-from flask import Flask
+from datetime import datetime
 from io import BytesIO
 
-
+import eventlet
+import eventlet.wsgi
+import numpy as np
+import socketio
 import torch
-from torch.autograd import Variable
 import torchvision.transforms as transforms
+from flask import Flask
+from PIL import Image
+from torch.autograd import Variable
 
 from model import *
 
@@ -29,20 +27,23 @@ prev_image_array = None
 transformations = transforms.Compose([
     transforms.ToTensor(),
     transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
-    ])
+])
 
 
-class SimplePIController:
-    def __init__(self, Kp, Ki):
+class PIDController:
+
+    def __init__(self, Kp, Ki, Kd):
         self.Kp = Kp
         self.Ki = Ki
+        self.Kd = Kd
         self.set_point = 0.
         self.error = 0.
         self.integral = 0.
+        self.previous = 0.
 
     def set_desired(self, desired):
         self.set_point = desired
-
+        
     def update(self, measurement):
         # proportional error
         self.error = self.set_point - measurement
@@ -50,17 +51,16 @@ class SimplePIController:
         # integral error
         self.integral += self.error
 
-        return self.Kp * self.error + self.Ki * self.integral
+        # differentiate of error, 15 fps
+        self.differentiate = (self.error - self.previous) * 15
+        self.previous = self.error
+
+        return self.Kp * self.error + self.Ki * self.integral + self.Kd * self.differentiate
 
 
-controller = SimplePIController(0.1, 0.002)
+controller = PIDController(0.1, 0.002, 0.001)
 set_speed = 10
 controller.set_desired(set_speed)
-
-
-# MAX_SPEED = 15
-# MIN_SPEED = 10
-# speed_limit = MAX_SPEED
 
 
 @sio.on('telemetry')
@@ -92,16 +92,6 @@ def telemetry(sid, data):
         steering_angle = model(image_tensor).view(-1).data.numpy()[0]
 
         throttle = controller.update(float(speed))
-
-        # ----------------------- Improved by Siraj ----------------------- #
-        # global speed_limit
-        # if speed > speed_limit:
-        #     speed_limit = MIN_SPEED
-        # else:
-        #     speed_limit = MAX_SPEED
-
-        # throttle = 1.2 - steering_angle ** 2 - (speed / set_speed) ** 2
-        # ----------------------- Improved by Siraj ----------------------- #
 
         send_control(steering_angle, throttle)
         print("Steering angle: {} | Throttle: {}".format(
@@ -151,13 +141,14 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     # define model
-    # model = LeNet()
-    model = NetworkNvidia()
+    # model = NetworkNvidia()
+    model = ModNet()
 
     # check that model version is same as local PyTorch version
     try:
         checkpoint = torch.load(
             args.model, map_location=lambda storage, loc: storage)
+        # print(checkpoint)
         model.load_state_dict(checkpoint['state_dict'])
 
     except KeyError:
