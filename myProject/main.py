@@ -47,7 +47,7 @@ def main():
     # parse command line arguments
     pathSet = [
         "./myProject/trainData/Mild/",
-        "./myProject/trainData/Agressive/"
+        "./myProject/trainData/Aggressive/"
     ]
     for dataPath in pathSet:
         # parse argument
